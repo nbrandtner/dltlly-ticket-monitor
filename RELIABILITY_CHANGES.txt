@@ -1,0 +1,53 @@
+DLTLLY Ticket Monitor - Reliability Changes
+Date: 2026-09-17
+
+1. monitor.py now resolves known_tickets.json relative to the script file.
+   This allows the script to work correctly even when a scheduler starts it
+   from a different working directory.
+
+2. The ticket-page request now uses explicit connect/read timeouts, a stable
+   User-Agent, connection reuse, and bounded retries with exponential backoff
+   for rate limits, transient server errors, and network failures.
+
+3. The Shopify selectors now use CSS class selectors rather than relying on
+   the exact order and string representation of class attributes. Price-prefix
+   removal also tolerates capitalization and spacing changes.
+
+4. Discord requests now have explicit connect/read timeouts and up to three
+   bounded attempts. Rate-limit responses respect Discord's retry_after value,
+   capped at 30 seconds.
+
+5. Discord exception details are not printed because request exceptions can
+   contain the secret webhook URL.
+
+6. A new ticket is only written to known_tickets.json after Discord confirms a
+   successful HTTP response. Failed deliveries remain unknown and are retried
+   by the next monitor execution.
+
+7. When several new tickets are found, successful deliveries are preserved in
+   state even if another delivery fails. The script then exits with an error so
+   the workflow visibly reports the delivery problem.
+
+8. Ticket state is written to a temporary file and atomically replaced. This
+   prevents an interrupted write from leaving corrupted JSON state.
+
+9. Direct Python dependencies are pinned in requirements.txt to known versions:
+   beautifulsoup4 4.15.0 and requests 2.34.2.
+
+10. The GitHub Actions schedule trigger was removed. The workflow retains
+    workflow_dispatch so cron-job.org can trigger it through GitHub's API.
+
+11. The GitHub Actions job now has a five-minute maximum runtime so a stuck
+    network operation cannot occupy the workflow indefinitely.
+
+12. The monitor step now has an ID, and the state-saving step runs after both a
+    successful or failed monitor execution. It stays skipped if the monitor
+    never started. This lets successful notifications be committed even when
+    another notification in the same run failed.
+
+13. Dependency installation now invokes pip through the selected Python
+    interpreter and disables pip's version check for cleaner workflow output.
+
+14. CRON_JOB_ORG_SETUP.md was added with the complete GitHub fine-grained token
+    and cron-job.org configuration procedure, validation steps, and token
+    rotation/revocation guidance.
